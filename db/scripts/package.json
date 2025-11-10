@@ -1,0 +1,12 @@
+{
+  "name": "cs361-game-catalogue-service",
+  "version": "1.0.0",
+  "description": "Game Catalogue Service Database Generation",
+  "type": "module",
+  "scripts": {
+    "makedb": "node generateGameDB.js"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  }
+}
