@@ -13,12 +13,25 @@ def get_games(id: int): # Jordan
     finally:
         db.close()
 
-def search_games(title: str):
-    """Kenneth"""
-    return {"title": title}
+def search_games(title: str): #Kenneth
+    """
+    Queries the databse for a given game name.
+    Returns the top 5 games that are closely to the given search.
+    Make sure your front end has a debouncer so we are not fetching the database on every click.
+    """
+    db = SessionLocal()
+    try:
+        newTitle = title.lower()
+        #if there is an exact match we provide that in the list first
+        exactMatch = title.lower()
+        #we set the order by exact match FIRST
+        selected_games = db.execute('SELECT * FROM Games WHERE name LIKE :newTitle ORDER BY name LIKE :exactMatch DESC LIMIT 5;',{"newTitle": f"%{newTitle}%", "exactMatch": f"%{exactMatch}%"}).fetchall()
+        return selected_games
+    finally:
+        db.close()
 
 def get_lists():
-    """Kenneth"""
+    """Abraham"""
     game_dict = {}
     return
 
@@ -42,6 +55,7 @@ def get_top_games():
 
 def get_staff_picks():
     """Kenneth"""
+    
     games = [ids] # Currate this ***
     data = get_multiple_games(games)
     return {"staffPicks": data}
