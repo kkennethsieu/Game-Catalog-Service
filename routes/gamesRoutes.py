@@ -29,7 +29,7 @@ async def get_top():
 
 @router.get("/lists/staff-picks") # Kenneth
 async def get_staff_picks():
-    return
+    return gamesModels.get_staff_picks()
 
 @router.get("/genres") # Will
 async def get_genres():
