@@ -1,5 +1,7 @@
 import json
 from db.db import SessionLocal, Games
+from sqlalchemy import case, func
+
 
 def get_games(id: int): # Jordan
     """
@@ -24,9 +26,18 @@ def search_games(title: str): #Kenneth
         newTitle = title.lower()
         #if there is an exact match we provide that in the list first
         exactMatch = title.lower()
-        #we set the order by exact match FIRST
-        selected_games = db.execute('SELECT * FROM Games WHERE name LIKE :newTitle ORDER BY name LIKE :exactMatch DESC LIMIT 5;',{"newTitle": f"%{newTitle}%", "exactMatch": f"%{exactMatch}%"}).fetchall()
-        return selected_games
+        #we search the database with both lower case
+        #if there is an exact match we put that first
+        #we only set a limit to 5 
+        searched_games = db.query(Games).filter(func.lower(Games.title).like(f"%{newTitle}%")).order_by(
+            case(
+                (Games.title == exactMatch,1),
+                else_= 0
+            ).desc()
+        ).limit(8).all()
+        searched_games = [game_to_dict(game) for game in searched_games]
+
+        return {"searched":searched_games}
     finally:
         db.close()
 
@@ -53,12 +64,17 @@ def get_top_games():
     data = get_multiple_games(games)
     return  data
 
-def get_staff_picks():
-    """Kenneth"""
-    
-    games = [ids] # Currate this ***
-    data = get_multiple_games(games)
-    return {"staffPicks": data}
+def get_staff_picks(): #Kenneth
+    """
+    Queries the database for the top games that the staff recommends
+    Returns the list of games 
+    """
+    db = SessionLocal()
+    game_ids = (311210, 960090,1172470,1091500,3595,271590,578080,730)
+    games_list = db.query(Games).filter(Games.id.in_(game_ids)).all()
+    games_list = [game_to_dict(game) for game in games_list]
+
+    return {"staffPicks":games_list}
 
 def get_multiple_games(games: list[int]):
     """
@@ -96,25 +112,6 @@ def get_genres():
 
 def get_games_by_genre(genre: str, skip: int = 0, limit: int = 10):
     """This function retrieves games by genre with pagination."""
-    def game_to_dict(game: Games) -> dict:
-        """Helper to convert Games model to dict with parsed JSON fields"""
-        return {
-            "id": game.id,
-            "title": game.title,
-            "description": game.description,
-            "releaseYear": game.releaseYear,
-            "imageUrl": game.imageUrl,
-            "developer": game.developer,
-            "publisher": game.publisher,
-            "platform": json.loads(game.platform) if game.platform else [],
-            "price": game.price,
-            "website": game.website,
-            "genres": json.loads(game.genres) if game.genres else [],
-            "tags": json.loads(game.tags) if game.tags else [],
-            "screenshots": json.loads(game.screenshots) if game.screenshots else [],
-            "metacriticScore": game.metacriticScore,
-            "steamRating": game.steamRating
-        }
 
     db = SessionLocal()
     try:
@@ -146,3 +143,23 @@ def get_games_by_genre(genre: str, skip: int = 0, limit: int = 10):
         }
     finally:
         db.close()
+
+def game_to_dict(game: Games) -> dict:
+        """Helper to convert Games model to dict with parsed JSON fields"""
+        return {
+            "id": game.id,
+            "title": game.title,
+            "description": game.description,
+            "releaseYear": game.releaseYear,
+            "imageUrl": game.imageUrl,
+            "developer": game.developer,
+            "publisher": game.publisher,
+            "platform": json.loads(game.platform) if game.platform else [],
+            "price": game.price,
+            "website": game.website,
+            "genres": json.loads(game.genres) if game.genres else [],
+            "tags": json.loads(game.tags) if game.tags else [],
+            "screenshots": json.loads(game.screenshots) if game.screenshots else [],
+            "metacriticScore": game.metacriticScore,
+            "steamRating": game.steamRating
+    }
