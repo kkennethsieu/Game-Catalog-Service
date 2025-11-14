@@ -13,11 +13,11 @@ async def search_games(title: str):
 
 @router.get("/lists") # Abraham
 async def get_lists():
-    return
+    return gamesModels.get_lists()
 
 @router.get("/lists/trending") # Abraham
 async def get_trending():
-    return
+    return gamesModels.get_trending_games()
 
 @router.get("/lists/featured") # Jordan
 async def get_featured():
