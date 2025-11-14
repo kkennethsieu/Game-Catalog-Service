@@ -3,6 +3,7 @@ from db.db import SessionLocal, Games
 from sqlalchemy import case, func
 import datetime
 
+
 def get_games(id: int):
     """
     # Jordan
@@ -37,7 +38,7 @@ def search_games(title: str):
             Games.title).like(f"%{newTitle}%")).order_by(
             case(
                 (Games.title == exactMatch, 1),
-                else_= 0
+                else_=0
             ).desc()
         ).limit(8).all()
         searched_games = [game_to_dict(game) for game in searched_games]
