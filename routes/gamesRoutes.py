@@ -31,7 +31,7 @@ async def get_featured():
 
 @router.get("/lists/top")  # Will
 async def get_top():
-    return
+    return gamesModels.get_top_games()
 
 
 @router.get("/lists/staff-picks")  # Kenneth

@@ -63,54 +63,58 @@ def get_lists():
     }
 
 
+def calculate_relevance_score(game):
+    """
+    Author: Abraham
+    Calculate a composite relevance score for trending games
+    """
+    score = 0
+
+    # Metacritic Score (40% weight) - normalized to 0-40
+    if game.metacriticScore:
+        score += (game.metacriticScore / 100) * 40
+
+    # Steam Rating (20% weight) - normalized to 0-20
+    if game.steamRating:
+        score += (game.steamRating / 100) * 20
+
+    # Release Year Relevance (25% weight) - recent games get higher scores
+    current_year = datetime.datetime.now().year
+    if game.releaseYear:
+        year_diff = current_year - game.releaseYear
+        if year_diff <= 1:  # Games from last year get full points
+            score += 25
+        elif year_diff <= 3:  # Games from last 3 years get partial points
+            score += 25 * (1 - (year_diff - 1) / 2)
+        elif year_diff <= 5:  # Games from last 5 years get minimal points
+            score += 25 * 0.2
+        # Older games get no recency points
+
+    # Price Factor (10% weight) - reasonably priced games get slight boost
+    if game.price:
+        if 10 <= game.price <= 60:  # Sweet spot pricing
+            score += 10
+        elif game.price < 10:  # Very cheap games get partial points
+            score += 7
+        elif 60 < game.price <= 80:  # Expensive but reasonable
+            score += 5
+        # Very expensive games (>$80) get no price points
+
+    # Quality Threshold (5% weight) - bonus for high-quality games
+    if game.metacriticScore and game.metacriticScore >= 85:
+        score += 5
+    elif game.steamRating and game.steamRating >= 90:
+        score += 3
+
+    return score
+
+
 def get_trending_games():
     """
-    Abraham
+    Author: Abraham
     Automatically generate trending games based on Metacritic
     scores and relevance
     """
-    def calculate_relevance_score(game):
-        """Calculate a composite relevance score for trending games"""
-        score = 0
-
-        # Metacritic Score (40% weight) - normalized to 0-40
-        if game.metacriticScore:
-            score += (game.metacriticScore / 100) * 40
-
-        # Steam Rating (20% weight) - normalized to 0-20
-        if game.steamRating:
-            score += (game.steamRating / 100) * 20
-
-        # Release Year Relevance (25% weight) - recent games get higher scores
-        current_year = datetime.datetime.now().year
-        if game.releaseYear:
-            year_diff = current_year - game.releaseYear
-            if year_diff <= 1:  # Games from last year get full points
-                score += 25
-            elif year_diff <= 3:  # Games from last 3 years get partial points
-                score += 25 * (1 - (year_diff - 1) / 2)
-            elif year_diff <= 5:  # Games from last 5 years get minimal points
-                score += 25 * 0.2
-            # Older games get no recency points
-
-        # Price Factor (10% weight) - reasonably priced games get slight boost
-        if game.price:
-            if 10 <= game.price <= 60:  # Sweet spot pricing
-                score += 10
-            elif game.price < 10:  # Very cheap games get partial points
-                score += 7
-            elif 60 < game.price <= 80:  # Expensive but reasonable
-                score += 5
-            # Very expensive games (>$80) get no price points
-
-        # Quality Threshold (5% weight) - bonus for high-quality games
-        if game.metacriticScore and game.metacriticScore >= 85:
-            score += 5
-        elif game.steamRating and game.steamRating >= 90:
-            score += 3
-
-        return score
-
     db = SessionLocal()
     try:
         # Get all games with required data for scoring
@@ -140,7 +144,10 @@ def get_trending_games():
 
 
 def get_featured_games():
-    """Jordan"""
+    """
+    Author: Jordan
+    Gets a list of featured games from the database
+    """
     db = SessionLocal()
     game_ids = (1245620, 413150, 1293830, 1174180, 570)
     games_list = db.query(Games).filter(Games.id.in_(game_ids)).all()
@@ -149,20 +156,26 @@ def get_featured_games():
 
 
 def get_top_games():
-    """Will"""
-    game_ids = []  # Currate this list
+    """
+    Author: Will
+    Queries the database for the top 10 games based on Metacritic scores.
+    """
     db = SessionLocal()
     try:
-        games_list = db.query(Games).filter(Games.id.in_(game_ids)).all()
-        data = [game_to_dict(game) for game in games_list]
-        return data
+        games_list = db.query(Games).order_by(
+            Games.metacriticScore.desc()).limit(10).all()
+        games_list = [game_to_dict(game) for game in games_list]
+        return {"topGames": games_list}
+    except Exception as e:
+        print("Error fetching top games:", e)
+        return {"topGames": []}
     finally:
         db.close()
 
 
 def get_staff_picks():
     """
-    Kenneth
+    Author: Kenneth
     Queries the database for the top games that the staff recommends.
     Returns the list of games.
     """
@@ -176,7 +189,7 @@ def get_staff_picks():
 
 def get_genres():
     """
-    Will
+    Author: Will
     This function retrieves all unique game genres from the database.
     """
     db = SessionLocal()
@@ -201,8 +214,10 @@ def get_genres():
 
 
 def get_games_by_genre(genre: str, skip: int = 0, limit: int = 10):
-    """This function retrieves games by genre with pagination."""
-
+    """
+    Author: Will
+    This function retrieves games by genre with pagination.
+    """
     db = SessionLocal()
     try:
         # Get all games from database
@@ -250,7 +265,8 @@ def game_to_dict(game: Games) -> dict:
         "website": game.website,
         "genres": json.loads(game.genres) if game.genres else [],
         "tags": json.loads(game.tags) if game.tags else [],
-        "screenshots": json.loads(game.screenshots) if game.screenshots else [],
+        "screenshots": json.loads(
+            game.screenshots) if game.screenshots else [],
         "metacriticScore": game.metacriticScore,
         "steamRating": game.steamRating
     }
